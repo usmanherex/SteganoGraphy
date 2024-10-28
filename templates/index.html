@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SecureStego - Modern Data Hiding Tools</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.16/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans antialiased">
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-50 backdrop-blur-lg bg-white/75 border-b border-slate-200">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i class="fas fa-shield-alt text-white text-xl"></i>
+                    </div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
+                        SecureStego
+                    </span>
+                </div>
+              
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="container mx-auto px-4 py-16">
+        <div class="text-center max-w-3xl mx-auto">
+            <h1 class="text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                Data Hiding for the
+                <span class="bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
+                    Modern Web
+                </span>
+            </h1>
+            <p class="text-slate-600 text-xl mb-12 leading-relaxed">
+                Secure your sensitive information using advanced steganography techniques. 
+                Choose from multiple methods to hide your data in plain sight.
+            </p>
+        </div>
+
+        <!-- Method Selection Card -->
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white/50 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-slate-200">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-semibold text-slate-900 mb-2">
+                        Choose Your Method
+                    </h2>
+                    <p class="text-slate-600">
+                        Select the steganography technique that best suits your needs
+                    </p>
+                </div>
+
+                <!-- Method Cards Grid -->
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-blue-400 transition-all duration-300 hover:shadow-lg">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-image text-blue-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-slate-900 mb-2">Image Steganography</h3>
+                            <p class="text-sm text-slate-600">Hide sensitive data within images using advanced algorithms</p>
+                        </div>
+                    </button>
+
+                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-green-400 transition-all duration-300 hover:shadow-lg">
+                        <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-green-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-file-alt text-green-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-slate-900 mb-2">Text Steganography</h3>
+                            <p class="text-sm text-slate-600">Embed messages within innocent-looking text</p>
+                        </div>
+                    </button>
+
+                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
+                        <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-purple-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-music text-purple-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-slate-900 mb-2">Audio Steganography</h3>
+                            <p class="text-sm text-slate-600">Conceal data within audio files seamlessly</p>
+                        </div>
+                    </button>
+
+                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg">
+                        <div class="absolute inset-0 bg-gradient-to-r from-yellow-50 to-yellow-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-qrcode text-yellow-600 text-xl"></i>
+                            </div>
+                            <h3 class="font-semibold text-slate-900 mb-2">QR Code Steganography</h3>
+                            <p class="text-sm text-slate-600">Hide data within QR codes discretely</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Features Section -->
+                <div class="border-t border-slate-200 pt-6 mt-6">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-shield-alt text-blue-600"></i>
+                            </div>
+                            <h4 class="text-sm font-medium text-slate-900">End-to-End Encryption</h4>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-bolt text-blue-600"></i>
+                            </div>
+                            <h4 class="text-sm font-medium text-slate-900">Fast Processing</h4>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-user-shield text-blue-600"></i>
+                            </div>
+                            <h4 class="text-sm font-medium text-slate-900">Privacy Focused</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="mt-8 text-center">
+                <p class="text-sm text-slate-400">
+                    &copy; 2024 SecureStego. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Check if the clicked button contains "Image Steganography"
+                if (button.textContent.includes('Image Steganography')) {
+                    window.location.href = '/imageSteganography';
+                } else {
+                    // Show "Coming Soon" alert for other methods
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Coming Soon',
+                        text: 'This steganography method is currently under development.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
