@@ -138,6 +138,9 @@
                 // Check if the clicked button contains "Image Steganography"
                 if (button.textContent.includes('Image Steganography')) {
                     window.location.href = '/imageSteganography';
+                }
+                else if (button.textContent.includes('Text Steganography')) {
+                    window.location.href = '/textSteganography';
                 } else {
                     // Show "Coming Soon" alert for other methods
                     Swal.fire({

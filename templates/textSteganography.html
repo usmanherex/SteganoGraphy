@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SecureStego - Text Steganography</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.16/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans antialiased">
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-50 backdrop-blur-lg bg-white/75 border-b border-slate-200">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i class="fas fa-shield-alt text-white text-xl"></i>
+                    </div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
+                        SecureStego
+                    </span>
+                </div>
+                <a href="/" class="text-slate-600 hover:text-blue-600 transition-colors duration-200 flex items-center space-x-2">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Home</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-16">
+        <!-- Header Section -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <h1 class="text-4xl font-bold text-slate-900 mb-4">
+                Text 
+                <span class="bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
+                    Steganography
+                </span>
+            </h1>
+            <p class="text-slate-600 text-lg">
+                Hide sensitive data within text securely and efficiently
+            </p>
+        </div>
+
+        <!-- Main Content Card -->
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white/50 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-slate-200">
+                <!-- Mode Selection -->
+                <div class="mb-8">
+                    <label class="block text-slate-900 font-semibold mb-2" for="mode">
+                        Select Operation Mode
+                    </label>
+                    <select class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
+                            id="mode"
+                            onchange="updateMode()">
+                        <option value="encode">Encode Data</option>
+                        <option value="decode">Decode Data</option>
+                    </select>
+                </div>
+
+                <!-- Encode Section -->
+                <div id="encode-section">
+                    <!-- Original Message Input -->
+                    <div class="mb-8" id="original-message-container">
+                        <label class="block text-slate-900 font-semibold mb-2" for="original-message">
+                            Original Message
+                        </label>
+                        <textarea class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[120px]" 
+                                  id="original-message" 
+                                  placeholder="Enter the original message to be used as cover text..."></textarea>
+                    </div>
+
+                    <!-- Secret Message Input -->
+                    <div class="mb-8" id="secret-message-container">
+                        <label class="block text-slate-900 font-semibold mb-2" for="secret-message">
+                            Secret Message
+                        </label>
+                        <textarea class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[120px]" 
+                                  id="secret-message" 
+                                  placeholder="Enter the secret message to be encoded..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Decode Section -->
+                <div id="decode-section" class="mb-8">
+                    <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
+                        <input type="file" id="decode-file" class="hidden" accept=".txt">
+                        <label for="decode-file" class="cursor-pointer">
+                            <div class="mb-4">
+                                <i class="fas fa-file-upload text-4xl text-slate-400"></i>
+                            </div>
+                            <p class="text-slate-600 mb-2">Upload encoded text file</p>
+                            <p class="text-sm text-slate-400">Click to browse or drag and drop</p>
+                        </label>
+                        <div id="file-name" class="mt-4 text-sm text-slate-600 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2" 
+                        type="button" 
+                        id="submit">
+                    <span id="buttonText">Encode Data</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.js"></script>
+    <script>
+        function updateMode() {
+            const encodeSection = document.getElementById('encode-section');
+            const decodeSection = document.getElementById('decode-section');
+            const buttonText = document.getElementById('buttonText');
+            const mode = document.getElementById('mode').value;
+            
+            encodeSection.style.display = mode === 'encode' ? 'block' : 'none';
+            decodeSection.style.display = mode === 'decode' ? 'block' : 'none';
+            buttonText.textContent = mode === 'encode' ? 'Encode Data' : 'Decode Data';
+        }
+
+        // File upload handling
+        const decodeFile = document.getElementById('decode-file');
+        const fileName = document.getElementById('file-name');
+
+        decodeFile.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                fileName.textContent = e.target.files[0].name;
+                fileName.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('submit').addEventListener('click', async function() {
+            const mode = document.getElementById('mode').value;
+
+            if (mode === 'encode') {
+                const originalMessage = document.getElementById('original-message').value.trim();
+                const secretMessage = document.getElementById('secret-message').value.trim();
+
+                if (!originalMessage) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Original Message Required',
+                        text: 'Please enter the original message to be used as cover text.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                    return;
+                }
+
+                if (!secretMessage) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Secret Message Required',
+                        text: 'Please enter the secret message to be encoded.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                    return;
+                }
+
+                let formData = new FormData();
+                formData.append('originalMessage', originalMessage);
+                formData.append('secretMessage', secretMessage);
+
+                Swal.fire({
+                    title: 'Encoding Data',
+                    html: 'Processing your request...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                    background: '#ffffff',
+                    customClass: {
+                        popup: 'rounded-2xl'
+                    }
+                });
+
+                try {
+                    const response = await fetch('/text-encode', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (result.error) {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Encoding Failed',
+                            text: result.error,
+                            confirmButtonColor: '#2563eb',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'rounded-2xl'
+                            }
+                        });
+                    } else {
+                        // Create and download the text file
+                        const blob = new Blob([result.encoded_text], { type: 'text/plain' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = result.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Your encoded message has been saved to a text file.',
+                            confirmButtonColor: '#2563eb',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'rounded-2xl'
+                            }
+                        });
+                    }
+                } catch (error) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Encoding Failed',
+                        text: 'An unexpected error occurred. Please try again.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                }
+            } else {
+                const file = document.getElementById('decode-file').files[0];
+
+                if (!file) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'File Required',
+                        text: 'Please upload a text file to decode.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                    return;
+                }
+
+                let formData = new FormData();
+                formData.append('file', file);
+
+                Swal.fire({
+                    title: 'Decoding Data',
+                    html: 'Processing your request...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                    background: '#ffffff',
+                    customClass: {
+                        popup: 'rounded-2xl'
+                    }
+                });
+
+                try {
+                    const response = await fetch('/text-decode', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (result.error) {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Decoding Failed',
+                            text: result.error,
+                            confirmButtonColor: '#2563eb',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'rounded-2xl'
+                            }
+                        });
+                    } else {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Hidden Message',
+                            html: `<div class="text-left p-4 bg-slate-50 rounded-lg">
+                                    <p class="text-sm text-slate-600 mb-2">Decoded content:</p>
+                                    <pre class="text-slate-900 break-words">${result.hidden_data}</pre>
+                                  </div>`,
+                            confirmButtonColor: '#2563eb',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'rounded-2xl'
+                            }
+                        });
+                    }
+                } catch (error) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Decoding Failed',
+                        text: 'An unexpected error occurred. Please try again.',
+                        confirmButtonColor: '#2563eb',
+                        background: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-2xl'
+                        }
+                    });
+                }
+            }
+        });
+
+        // Initialize the page with encode mode
+        updateMode();
+    </script>
+</body>
+</html>
