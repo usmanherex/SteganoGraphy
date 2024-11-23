@@ -141,7 +141,10 @@
                 }
                 else if (button.textContent.includes('Text Steganography')) {
                     window.location.href = '/textSteganography';
-                } else {
+                }
+                else if (button.textContent.includes('Audio Steganography')) {
+                    window.location.href = '/audioSteganography';
+                }  else {
                     // Show "Coming Soon" alert for other methods
                     Swal.fire({
                         icon: 'info',
