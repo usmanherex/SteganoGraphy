@@ -25,6 +25,7 @@ class AudioSteganography:
     def __init__(self):
         self.FRAME_RATE = 44100
         self.SAMPLE_WIDTH = 2  # 16-bit audio
+        self.BITS_TO_USE = 4   # Number of LSB bits to use for hiding data
         
     def read_wave_file(self, wave_file):
         """Read wave file and return audio data"""
@@ -40,35 +41,75 @@ class AudioSteganography:
             
             return audio_array, frame_rate, sample_width, n_channels
 
+    def prepare_secret_data(self, secret_audio, carrier_length):
+        """Prepare secret audio data by padding or truncating"""
+        # Prepare the secret data array
+        secret_data = np.zeros(carrier_length, dtype=np.int16)
+        
+        # Calculate how much of the secret audio we can actually store
+        usable_length = min(len(secret_audio), carrier_length - 32)  # Reserve 32 samples for length info
+        
+        # Normalize the portion of secret audio we'll use
+        secret_portion = secret_audio[:usable_length].astype(np.float32)
+        secret_portion = (secret_portion / 32768.0 + 1) / 2  # Normalize to [0, 1]
+        secret_portion = (secret_portion * ((2 ** self.BITS_TO_USE) - 1)).astype(np.int16)
+        
+        # Place the prepared secret data after the length information
+        secret_data[32:32 + usable_length] = secret_portion
+        
+        return secret_data, usable_length
+
     def encode_audio(self, carrier_file, secret_file):
-        """Encode secret audio within carrier audio"""
+        """Encode secret audio within carrier audio using multiple LSB bits"""
         # Read both audio files
         carrier_audio, c_rate, c_width, c_channels = self.read_wave_file(carrier_file)
         secret_audio, s_rate, s_width, s_channels = self.read_wave_file(secret_file)
         
-        # Ensure secret audio isn't longer than carrier
-        if len(secret_audio) > len(carrier_audio):
-            raise ValueError("Secret audio must be shorter than carrier audio")
+        # Calculate the maximum length of secret data we can store
+        max_secret_length = len(carrier_audio) - 32  # Reserve 32 samples for length info
         
-        # Convert to 16-bit arrays if needed
+        if len(secret_audio) > max_secret_length:
+            print(f"Warning: Secret audio will be truncated from {len(secret_audio)} to {max_secret_length} samples")
+        
+        # Prepare the secret data
+        secret_data, actual_length = self.prepare_secret_data(secret_audio, len(carrier_audio))
+        
+        # Prepare carrier audio
         carrier = carrier_audio.astype(np.int16)
-        secret = secret_audio.astype(np.int16)
         
-        # Use LSB steganography: replace least significant bit of carrier with most significant bit of secret
-        secret_msb = (secret >> 7) & 1  # Get MSB of secret
-        carrier_cleared = carrier & 0xFFFE  # Clear LSB of carrier
-        encoded = carrier_cleared | secret_msb[:len(carrier)]  # Combine
+        # Create mask for clearing LSBs of carrier
+        mask = ~((1 << self.BITS_TO_USE) - 1)
         
-        return encoded, c_rate, c_width, c_channels
+        # Encode the length of secret audio in the first 32 samples
+        length_bits = np.binary_repr(actual_length, width=32)
+        for i in range(32):
+            carrier[i] = (carrier[i] & ~1) | int(length_bits[i])
+        
+        # Clear LSBs of carrier and add secret data
+        carrier[32:] = (carrier[32:] & mask) | (secret_data[32:] & ~mask)
+        
+        return carrier, c_rate, c_width, c_channels
 
     def decode_audio(self, stego_file):
         """Extract hidden audio from steganographic audio file"""
         # Read the steganographic audio
         stego_audio, rate, width, channels = self.read_wave_file(stego_file)
         
-        # Extract the LSB and amplify it to reconstruct the hidden audio
-        decoded = (stego_audio & 1) << 7  # Extract LSB and shift to MSB position
-        decoded = decoded.astype(np.int16)  # Convert back to 16-bit audio
+        # Extract the length of secret audio from first 32 samples
+        length_bits = ''.join(str(x & 1) for x in stego_audio[:32])
+        secret_length = int(length_bits, 2)
+        
+        # Ensure we don't try to decode more than we have
+        secret_length = min(secret_length, len(stego_audio) - 32)
+        
+        # Extract the LSBs and reconstruct the hidden audio
+        mask = (1 << self.BITS_TO_USE) - 1
+        decoded = stego_audio[32:32 + secret_length] & mask
+        
+        # Scale back to full 16-bit range
+        decoded = decoded.astype(np.float32)
+        decoded = (decoded / ((2 ** self.BITS_TO_USE) - 1)) * 2 - 1  # Back to [-1, 1]
+        decoded = (decoded * 32768).astype(np.int16)  # Back to 16-bit
         
         return decoded, rate, width, channels
 
@@ -80,7 +121,8 @@ class AudioSteganography:
             wav.setframerate(frame_rate)
             wav.writeframes(audio_data.tobytes())
 
-# Add these routes to your existing Flask app:
+# Flask routes
+app = Flask(__name__)
 
 @app.route('/audioSteganography')
 def audio_steganography():
@@ -101,6 +143,7 @@ def audio_encode():
             return jsonify({'error': 'No files selected'}), 400
 
         # Create temporary files for processing
+        os.makedirs('AUDIOFOLDER', exist_ok=True)
         carrier_path = os.path.join('AUDIOFOLDER', 'temp_carrier.wav')
         secret_path = os.path.join('AUDIOFOLDER', 'temp_secret.wav')
         carrier_file.save(carrier_path)
@@ -111,22 +154,27 @@ def audio_encode():
         try:
             encoded_audio, rate, width, channels = stegno.encode_audio(carrier_path, secret_path)
             
-            # Save encoded audio
-            output_path = os.path.join('AUDIOFOLDER', 'encoded_audio.wav')
-            stegno.save_wave_file(output_path, encoded_audio, rate, width, channels)
+            # Create BytesIO object to store the encoded audio
+            buffer = BytesIO()
+            stegno.save_wave_file(buffer, encoded_audio, rate, width, channels)
+            buffer.seek(0)
             
             # Clean up temporary files
             os.remove(carrier_path)
             os.remove(secret_path)
             
             return send_file(
-                output_path,
+                buffer,
                 mimetype='audio/wav',
                 as_attachment=True,
                 download_name='encoded_audio.wav'
             )
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            if os.path.exists(carrier_path):
+                os.remove(carrier_path)
+            if os.path.exists(secret_path):
+                os.remove(secret_path)
+            raise e
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -144,6 +192,7 @@ def audio_decode():
             return jsonify({'error': 'No file selected'}), 400
 
         # Save uploaded file temporarily
+        os.makedirs('AUDIOFOLDER', exist_ok=True)
         audio_path = os.path.join('AUDIOFOLDER', 'temp_encoded.wav')
         audio_file.save(audio_path)
 
@@ -152,21 +201,24 @@ def audio_decode():
         try:
             decoded_audio, rate, width, channels = stegno.decode_audio(audio_path)
             
-            # Save decoded audio
-            output_path = os.path.join('AUDIOFOLDER', 'decoded_audio.wav')
-            stegno.save_wave_file(output_path, decoded_audio, rate, width, channels)
+            # Create BytesIO object to store the decoded audio
+            buffer = BytesIO()
+            stegno.save_wave_file(buffer, decoded_audio, rate, width, channels)
+            buffer.seek(0)
             
             # Clean up temporary file
             os.remove(audio_path)
             
             return send_file(
-                output_path,
+                buffer,
                 mimetype='audio/wav',
                 as_attachment=True,
                 download_name='decoded_audio.wav'
             )
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+            raise e
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -341,21 +393,38 @@ class IMG_Stegno:
 
     def decode(self, image):
         """Decode the data from the image"""
-        image_data = iter(image.getdata())
-        data = ''
-        while (True):
-            pixels = [value for value in image_data.__next__()[:3] +
-                      image_data.__next__()[:3] +
-                      image_data.__next__()[:3]]
-            binary_str = ''
-            for i in pixels[:8]:
-                if i % 2 == 0:
-                    binary_str += '0'
-                else:
-                    binary_str += '1'
-            data += chr(int(binary_str, 2))
-            if pixels[-1] % 2 != 0:
-                return data
+        try:
+            image_data = iter(image.getdata())
+            data = ''
+            
+            while True:
+                try:
+                    pixels = [value for value in image_data.__next__()[:3] +
+                             image_data.__next__()[:3] +
+                             image_data.__next__()[:3]]
+                    
+                    binary_str = ''
+                    for i in pixels[:8]:
+                        binary_str += '1' if i % 2 else '0'
+                    
+                    char_value = int(binary_str, 2)
+                    data += chr(char_value)
+                    
+                    if pixels[-1] % 2 != 0:  # Found the termination marker
+                        # Final validation: check if the decoded text contains only printable characters
+                        if all(32 <= ord(c) <= 126 for c in data):
+                            return data
+                        else:
+                            return "Image is not encoded"
+                            
+                except (ValueError, UnicodeDecodeError):
+                    return "Image is not encoded"
+                except StopIteration:
+                    return "Image is not encoded"
+                    
+        except Exception as e:
+            print(f"Decoding error: {str(e)}")
+            return "Image is not encoded"
 
 # Routes
 @app.route('/')
