@@ -25,7 +25,7 @@ class AudioSteganography:
     def __init__(self):
         self.FRAME_RATE = 44100
         self.SAMPLE_WIDTH = 2  # 16-bit audio
-        self.BITS_TO_USE = 4   # Number of LSB bits to use for hiding data
+        self.BITS_PER_SAMPLE = 4  # Using 4 LSB bits per sample
         
     def read_wave_file(self, wave_file):
         """Read wave file and return audio data"""
@@ -41,77 +41,96 @@ class AudioSteganography:
             
             return audio_array, frame_rate, sample_width, n_channels
 
-    def prepare_secret_data(self, secret_audio, carrier_length):
-        """Prepare secret audio data by padding or truncating"""
-        # Prepare the secret data array
-        secret_data = np.zeros(carrier_length, dtype=np.int16)
+    def compress_audio(self, audio_data):
+        """Compress audio data using mu-law compression"""
+        # Convert to float between -1 and 1
+        float_data = audio_data.astype(np.float32) / 32768.0
         
-        # Calculate how much of the secret audio we can actually store
-        usable_length = min(len(secret_audio), carrier_length - 32)  # Reserve 32 samples for length info
+        # Apply mu-law compression
+        mu = 255
+        compressed = np.sign(float_data) * np.log(1 + mu * np.abs(float_data)) / np.log(1 + mu)
         
-        # Normalize the portion of secret audio we'll use
-        secret_portion = secret_audio[:usable_length].astype(np.float32)
-        secret_portion = (secret_portion / 32768.0 + 1) / 2  # Normalize to [0, 1]
-        secret_portion = (secret_portion * ((2 ** self.BITS_TO_USE) - 1)).astype(np.int16)
+        # Convert to 8-bit
+        compressed = (compressed * 127).astype(np.int8)
+        return compressed
+
+    def decompress_audio(self, compressed_data):
+        """Decompress audio data using mu-law decompression"""
+        # Convert back to float
+        float_data = compressed_data.astype(np.float32) / 127.0
         
-        # Place the prepared secret data after the length information
-        secret_data[32:32 + usable_length] = secret_portion
+        # Apply mu-law decompression
+        mu = 255
+        decompressed = np.sign(float_data) * (1/mu) * ((1 + mu)**np.abs(float_data) - 1)
         
-        return secret_data, usable_length
+        # Convert back to 16-bit
+        decompressed = (decompressed * 32768).astype(np.int16)
+        return decompressed
 
     def encode_audio(self, carrier_file, secret_file):
-        """Encode secret audio within carrier audio using multiple LSB bits"""
+        """Encode compressed secret audio within carrier audio"""
         # Read both audio files
         carrier_audio, c_rate, c_width, c_channels = self.read_wave_file(carrier_file)
         secret_audio, s_rate, s_width, s_channels = self.read_wave_file(secret_file)
         
-        # Calculate the maximum length of secret data we can store
-        max_secret_length = len(carrier_audio) - 32  # Reserve 32 samples for length info
+        # Compress secret audio
+        compressed_secret = self.compress_audio(secret_audio)
+        secret_bytes = compressed_secret.tobytes()
+        secret_length = len(secret_bytes)
         
-        if len(secret_audio) > max_secret_length:
-            print(f"Warning: Secret audio will be truncated from {len(secret_audio)} to {max_secret_length} samples")
+        # Calculate carrier capacity
+        carrier_capacity = (len(carrier_audio) * self.BITS_PER_SAMPLE) // 8
         
-        # Prepare the secret data
-        secret_data, actual_length = self.prepare_secret_data(secret_audio, len(carrier_audio))
+        if secret_length + 4 > carrier_capacity:
+            raise ValueError(f"Carrier audio too small. Needs {secret_length + 4} bytes, has {carrier_capacity}")
         
-        # Prepare carrier audio
-        carrier = carrier_audio.astype(np.int16)
+        # Prepare carrier
+        carrier = carrier_audio.copy()
         
-        # Create mask for clearing LSBs of carrier
-        mask = ~((1 << self.BITS_TO_USE) - 1)
-        
-        # Encode the length of secret audio in the first 32 samples
-        length_bits = np.binary_repr(actual_length, width=32)
+        # Embed secret length (4 bytes)
+        length_bits = format(secret_length, '032b')
         for i in range(32):
-            carrier[i] = (carrier[i] & ~1) | int(length_bits[i])
+            carrier[i] = (carrier[i] & ~((1 << self.BITS_PER_SAMPLE) - 1)) | (int(length_bits[i]) & ((1 << self.BITS_PER_SAMPLE) - 1))
         
-        # Clear LSBs of carrier and add secret data
-        carrier[32:] = (carrier[32:] & mask) | (secret_data[32:] & ~mask)
+        # Embed compressed secret data
+        bit_array = np.unpackbits(np.frombuffer(secret_bytes, dtype=np.uint8))
+        for i in range(len(bit_array)):
+            sample_idx = 32 + i // self.BITS_PER_SAMPLE
+            bit_idx = i % self.BITS_PER_SAMPLE
+            if sample_idx < len(carrier):
+                carrier[sample_idx] = (carrier[sample_idx] & ~(1 << bit_idx)) | (bit_array[i] << bit_idx)
         
         return carrier, c_rate, c_width, c_channels
 
     def decode_audio(self, stego_file):
-        """Extract hidden audio from steganographic audio file"""
+        """Extract and decompress hidden audio"""
         # Read the steganographic audio
         stego_audio, rate, width, channels = self.read_wave_file(stego_file)
         
-        # Extract the length of secret audio from first 32 samples
-        length_bits = ''.join(str(x & 1) for x in stego_audio[:32])
+        # Extract length
+        length_bits = ''
+        for i in range(32):
+            length_bits += str(stego_audio[i] & ((1 << self.BITS_PER_SAMPLE) - 1))
         secret_length = int(length_bits, 2)
         
-        # Ensure we don't try to decode more than we have
-        secret_length = min(secret_length, len(stego_audio) - 32)
+        # Extract compressed secret data
+        total_bits = secret_length * 8
+        bit_array = np.zeros(total_bits, dtype=np.uint8)
         
-        # Extract the LSBs and reconstruct the hidden audio
-        mask = (1 << self.BITS_TO_USE) - 1
-        decoded = stego_audio[32:32 + secret_length] & mask
+        for i in range(total_bits):
+            sample_idx = 32 + i // self.BITS_PER_SAMPLE
+            bit_idx = i % self.BITS_PER_SAMPLE
+            if sample_idx < len(stego_audio):
+                bit_array[i] = (stego_audio[sample_idx] >> bit_idx) & 1
         
-        # Scale back to full 16-bit range
-        decoded = decoded.astype(np.float32)
-        decoded = (decoded / ((2 ** self.BITS_TO_USE) - 1)) * 2 - 1  # Back to [-1, 1]
-        decoded = (decoded * 32768).astype(np.int16)  # Back to 16-bit
+        # Convert bits back to bytes
+        secret_bytes = np.packbits(bit_array).tobytes()
+        compressed_secret = np.frombuffer(secret_bytes[:secret_length], dtype=np.int8)
         
-        return decoded, rate, width, channels
+        # Decompress the secret audio
+        decoded_audio = self.decompress_audio(compressed_secret)
+        
+        return decoded_audio, rate, width, channels
 
     def save_wave_file(self, filename, audio_data, frame_rate, sample_width, n_channels):
         """Save audio data to wave file"""
