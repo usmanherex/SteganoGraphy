@@ -1,8 +1,15 @@
+import tempfile
 from flask import Flask, render_template, request, send_file, jsonify
 from io import BytesIO
 from PIL import Image
 import os
 import logging
+import numpy as np
+import wave
+import os
+from io import BytesIO
+import cv2
+from pathlib import Path
 
 app = Flask(__name__)
 
@@ -14,12 +21,6 @@ ENCODED_TEXTS_FOLDER = 'encoded_texts/'
 for folder in [UPLOAD_FOLDER, ENCODED_TEXTS_FOLDER]:
     if not os.path.exists(folder):
         os.makedirs(folder)
-
-from flask import Flask, render_template, request, send_file, jsonify
-import numpy as np
-import wave
-import os
-from io import BytesIO
 
 class AudioSteganography:
     def __init__(self):
@@ -458,9 +459,13 @@ def image_steganography():
 
 @app.route('/textSteganography')
 def text_steganography():
-    """Render the image steganography page"""
+    """Render the text steganography page"""
     return render_template('textSteganography.html')
 
+@app.route('/videoSteganography')
+def video_steganography():
+    """Render the video steganography page"""
+    return render_template('videoSteganography.html')
 
 @app.route('/encode', methods=['POST'])
 def encode():
@@ -531,6 +536,147 @@ def decode():
         print(f"Decode route error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+
+# Configure upload folder
+UPLOAD_FOLDER = Path(tempfile.gettempdir()) / "video_stego"
+UPLOAD_FOLDER.mkdir(exist_ok=True)
+ALLOWED_EXTENSIONS = {'mp4'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def extract_frames(video_path):
+    """Extract frames from video file"""
+    cap = cv2.VideoCapture(str(video_path))
+    frames = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frames.append(frame)
+    cap.release()
+    return frames, cap.get(cv2.CAP_PROP_FPS)
+
+def save_video(frames, fps, output_path):
+    """Save frames as video file"""
+    if not frames:
+        raise ValueError("No frames to save")
+    
+    height, width = frames[0].shape[:2]
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+    
+    for frame in frames:
+        out.write(frame)
+    out.release()
+
+def encode_frame(carrier_frame, secret_frame):
+    """Encode secret frame into carrier frame using LSB"""
+    # Ensure frames are same size
+    secret_frame = cv2.resize(secret_frame, (carrier_frame.shape[1], carrier_frame.shape[0]))
+    
+    # Convert frames to binary
+    carrier_bits = carrier_frame.copy()
+    secret_bits = (secret_frame >> 4) & 15  # Take 4 most significant bits
+    
+    # Clear 4 least significant bits of carrier
+    carrier_bits = carrier_bits & 240  # 240 = 11110000 in binary
+    
+    # Encode secret bits into carrier
+    encoded_frame = carrier_bits | secret_bits
+    return encoded_frame
+
+def decode_frame(encoded_frame):
+    """Decode secret frame from encoded frame"""
+    # Extract 4 least significant bits and shift them to be most significant
+    secret_frame = (encoded_frame & 15) << 4
+    return secret_frame
+
+@app.route('/video-encode', methods=['POST'])
+def encode_video():
+    if 'carrier' not in request.files or 'secret' not in request.files:
+        return jsonify({'error': 'Missing carrier or secret video'}), 400
+    
+    carrier_file = request.files['carrier']
+    secret_file = request.files['secret']
+    
+    if not (carrier_file and secret_file and 
+            allowed_file(carrier_file.filename) and 
+            allowed_file(secret_file.filename)):
+        return jsonify({'error': 'Invalid file format. Please use MP4 files.'}), 400
+    
+    try:
+        # Save uploaded files temporarily
+        carrier_path = UPLOAD_FOLDER / "carrier.mp4"
+        secret_path = UPLOAD_FOLDER / "secret.mp4"
+        carrier_file.save(carrier_path)
+        secret_file.save(secret_path)
+        
+        # Extract frames
+        carrier_frames, carrier_fps = extract_frames(carrier_path)
+        secret_frames, _ = extract_frames(secret_path)
+        
+        if not carrier_frames or not secret_frames:
+            return jsonify({'error': 'Failed to read video files'}), 400
+        
+        # Ensure secret video isn't longer than carrier
+        secret_frames = secret_frames[:len(carrier_frames)]
+        
+        # Encode frames
+        encoded_frames = []
+        for c_frame, s_frame in zip(carrier_frames, secret_frames):
+            encoded_frame = encode_frame(c_frame, s_frame)
+            encoded_frames.append(encoded_frame)
+        
+        # Save encoded video
+        output_path = UPLOAD_FOLDER / "encoded.mp4"
+        save_video(encoded_frames, carrier_fps, output_path)
+        
+        # Send encoded video
+        return send_file(output_path, mimetype='video/mp4', as_attachment=True,
+                        download_name='encoded_video.mp4')
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/video-decode', methods=['POST'])
+def decode_video():
+    if 'video' not in request.files:
+        return jsonify({'error': 'No video file provided'}), 400
+    
+    video_file = request.files['video']
+    
+    if not video_file or not allowed_file(video_file.filename):
+        return jsonify({'error': 'Invalid file format. Please use MP4 files.'}), 400
+    
+    try:
+        # Save uploaded file temporarily
+        video_path = UPLOAD_FOLDER / "encoded.mp4"
+        video_file.save(video_path)
+        
+        # Extract frames
+        encoded_frames, fps = extract_frames(video_path)
+        
+        if not encoded_frames:
+            return jsonify({'error': 'Failed to read video file'}), 400
+        
+        # Decode frames
+        decoded_frames = []
+        for frame in encoded_frames:
+            decoded_frame = decode_frame(frame)
+            decoded_frames.append(decoded_frame)
+        
+        # Save decoded video
+        output_path = UPLOAD_FOLDER / "decoded.mp4"
+        save_video(decoded_frames, fps, output_path)
+        
+        # Send decoded video
+        return send_file(output_path, mimetype='video/mp4', as_attachment=True,
+                        download_name='decoded_video.mp4')
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):

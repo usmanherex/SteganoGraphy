@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SecureStego - Modern Data Hiding Tools</title>
+    <title>SecureStegno</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.16/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -15,10 +15,9 @@
                         <i class="fas fa-shield-alt text-white text-xl"></i>
                     </div>
                     <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
-                        SecureStego
+                        SecureStegno
                     </span>
                 </div>
-              
             </div>
         </div>
     </nav>
@@ -39,7 +38,7 @@
         </div>
 
         <!-- Method Selection Card -->
-        <div class="max-w-2xl mx-auto">
+        <div class="max-w-3xl mx-auto">
             <div class="bg-white/50 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-slate-200">
                 <div class="mb-8">
                     <h2 class="text-2xl font-semibold text-slate-900 mb-2">
@@ -51,11 +50,11 @@
                 </div>
 
                 <!-- Method Cards Grid -->
-                <div class="grid grid-cols-2 gap-6 mb-8">
-                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-blue-400 transition-all duration-300 hover:shadow-lg">
+                <div class="flex justify-between space-x-6 mb-8">
+                    <button class="flex-1 group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-blue-400 transition-all duration-300 hover:shadow-lg">
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="relative">
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div class="relative text-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                 <i class="fas fa-image text-blue-600 text-xl"></i>
                             </div>
                             <h3 class="font-semibold text-slate-900 mb-2">Image Steganography</h3>
@@ -63,10 +62,10 @@
                         </div>
                     </button>
 
-                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-green-400 transition-all duration-300 hover:shadow-lg">
+                    <button class="flex-1 group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-green-400 transition-all duration-300 hover:shadow-lg">
                         <div class="absolute inset-0 bg-gradient-to-r from-green-50 to-green-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="relative">
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div class="relative text-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                 <i class="fas fa-file-alt text-green-600 text-xl"></i>
                             </div>
                             <h3 class="font-semibold text-slate-900 mb-2">Text Steganography</h3>
@@ -74,25 +73,14 @@
                         </div>
                     </button>
 
-                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
+                    <button class="flex-1 group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
                         <div class="absolute inset-0 bg-gradient-to-r from-purple-50 to-purple-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="relative">
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div class="relative text-center">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                 <i class="fas fa-music text-purple-600 text-xl"></i>
                             </div>
                             <h3 class="font-semibold text-slate-900 mb-2">Audio Steganography</h3>
                             <p class="text-sm text-slate-600">Conceal data within audio files seamlessly</p>
-                        </div>
-                    </button>
-
-                    <button class="group relative overflow-hidden rounded-xl p-6 bg-white border border-slate-200 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg">
-                        <div class="absolute inset-0 bg-gradient-to-r from-yellow-50 to-yellow-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="relative">
-                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-qrcode text-yellow-600 text-xl"></i>
-                            </div>
-                            <h3 class="font-semibold text-slate-900 mb-2">Video Steganography</h3>
-                            <p class="text-sm text-slate-600">Hide data within Videos discretely</p>
                         </div>
                     </button>
                 </div>
@@ -135,7 +123,6 @@
     <script>
         document.querySelectorAll('button').forEach(button => {
             button.addEventListener('click', (e) => {
-                // Check if the clicked button contains "Image Steganography"
                 if (button.textContent.includes('Image Steganography')) {
                     window.location.href = '/imageSteganography';
                 }
@@ -144,18 +131,6 @@
                 }
                 else if (button.textContent.includes('Audio Steganography')) {
                     window.location.href = '/audioSteganography';
-                }  else {
-                    // Show "Coming Soon" alert for other methods
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Coming Soon',
-                        text: 'This steganography method is currently under development.',
-                        confirmButtonColor: '#2563eb',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
-                    });
                 }
             });
         });
