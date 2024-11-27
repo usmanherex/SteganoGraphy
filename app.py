@@ -1,15 +1,12 @@
-import tempfile
+import io
 from flask import Flask, render_template, request, send_file, jsonify
 from io import BytesIO
 from PIL import Image
 import os
-import logging
 import numpy as np
 import wave
 import os
 from io import BytesIO
-import cv2
-from pathlib import Path
 
 app = Flask(__name__)
 
@@ -446,26 +443,6 @@ class IMG_Stegno:
             print(f"Decoding error: {str(e)}")
             return "Image is not encoded"
 
-# Routes
-@app.route('/')
-def index():
-    """Render the main page with steganography method selection"""
-    return render_template('index.html')
-
-@app.route('/imageSteganography')
-def image_steganography():
-    """Render the image steganography page"""
-    return render_template('imageSteganography.html')
-
-@app.route('/textSteganography')
-def text_steganography():
-    """Render the text steganography page"""
-    return render_template('textSteganography.html')
-
-@app.route('/videoSteganography')
-def video_steganography():
-    """Render the video steganography page"""
-    return render_template('videoSteganography.html')
 
 @app.route('/encode', methods=['POST'])
 def encode():
@@ -536,147 +513,126 @@ def decode():
         print(f"Decode route error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
-
-# Configure upload folder
-UPLOAD_FOLDER = Path(tempfile.gettempdir()) / "video_stego"
-UPLOAD_FOLDER.mkdir(exist_ok=True)
-ALLOWED_EXTENSIONS = {'mp4'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def extract_frames(video_path):
-    """Extract frames from video file"""
-    cap = cv2.VideoCapture(str(video_path))
-    frames = []
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frames.append(frame)
-    cap.release()
-    return frames, cap.get(cv2.CAP_PROP_FPS)
-
-def save_video(frames, fps, output_path):
-    """Save frames as video file"""
-    if not frames:
-        raise ValueError("No frames to save")
+class Steganography(object):
+    @staticmethod
+    def __int_to_bin(rgb):
+        r, g, b = rgb
+        return ('{0:08b}'.format(r),
+                '{0:08b}'.format(g),
+                '{0:08b}'.format(b))
     
-    height, width = frames[0].shape[:2]
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+    @staticmethod
+    def __bin_to_int(rgb):
+        r, g, b = rgb
+        return (int(r, 2),
+                int(g, 2),
+                int(b, 2))
     
-    for frame in frames:
-        out.write(frame)
-    out.release()
+    @staticmethod
+    def __merge_rgb(rgb1, rgb2):
+        r1, g1, b1 = rgb1
+        r2, g2, b2 = rgb2
+        rgb = (r1[:4] + r2[:4], g1[:4] + g2[:4], b1[:4] + b2[:4])
+        return rgb
+    
+    @staticmethod
+    def merge(img1, img2):
+        if img2.size[0] > img1.size[0] or img2.size[1] > img1.size[1]:
+            raise ValueError('Image 2 should not be larger than Image 1!')
+        
+        pixel_map1 = img1.load()
+        pixel_map2 = img2.load()
+        new_image = Image.new(img1.mode, img1.size)
+        pixels_new = new_image.load()
+        
+        for i in range(img1.size[0]):
+            for j in range(img1.size[1]):
+                rgb1 = Steganography.__int_to_bin(pixel_map1[i, j])
+                rgb2 = Steganography.__int_to_bin((0, 0, 0))
+                
+                if i < img2.size[0] and j < img2.size[1]:
+                    rgb2 = Steganography.__int_to_bin(pixel_map2[i, j])
+                
+                rgb = Steganography.__merge_rgb(rgb1, rgb2)
+                pixels_new[i, j] = Steganography.__bin_to_int(rgb)
+        
+        return new_image
+    
+    @staticmethod
+    def unmerge(img):
+        pixel_map = img.load()
+        new_image = Image.new(img.mode, img.size)
+        pixels_new = new_image.load()
+        original_size = img.size
+        
+        for i in range(img.size[0]):
+            for j in range(img.size[1]):
+                r, g, b = Steganography.__int_to_bin(pixel_map[i, j])
+                rgb = (r[4:] + '0000', g[4:] + '0000', b[4:] + '0000')
+                pixels_new[i, j] = Steganography.__bin_to_int(rgb)
+                
+                if pixels_new[i, j] != (0, 0, 0):
+                    original_size = (i + 1, j + 1)
+        
+        new_image = new_image.crop((0, 0, original_size[0], original_size[1]))
+        return new_image
 
-def encode_frame(carrier_frame, secret_frame):
-    """Encode secret frame into carrier frame using LSB"""
-    # Ensure frames are same size
-    secret_frame = cv2.resize(secret_frame, (carrier_frame.shape[1], carrier_frame.shape[0]))
+@app.route('/hide-image', methods=['POST'])
+def hide_image():
+    if 'carrier_image' not in request.files or 'secret_image' not in request.files:
+        return jsonify({'error': 'Both carrier and secret images are required'}), 400
     
-    # Convert frames to binary
-    carrier_bits = carrier_frame.copy()
-    secret_bits = (secret_frame >> 4) & 15  # Take 4 most significant bits
-    
-    # Clear 4 least significant bits of carrier
-    carrier_bits = carrier_bits & 240  # 240 = 11110000 in binary
-    
-    # Encode secret bits into carrier
-    encoded_frame = carrier_bits | secret_bits
-    return encoded_frame
-
-def decode_frame(encoded_frame):
-    """Decode secret frame from encoded frame"""
-    # Extract 4 least significant bits and shift them to be most significant
-    secret_frame = (encoded_frame & 15) << 4
-    return secret_frame
-
-@app.route('/video-encode', methods=['POST'])
-def encode_video():
-    if 'carrier' not in request.files or 'secret' not in request.files:
-        return jsonify({'error': 'Missing carrier or secret video'}), 400
-    
-    carrier_file = request.files['carrier']
-    secret_file = request.files['secret']
-    
-    if not (carrier_file and secret_file and 
-            allowed_file(carrier_file.filename) and 
-            allowed_file(secret_file.filename)):
-        return jsonify({'error': 'Invalid file format. Please use MP4 files.'}), 400
+    carrier_image = Image.open(request.files['carrier_image'])
+    secret_image = Image.open(request.files['secret_image'])
     
     try:
-        # Save uploaded files temporarily
-        carrier_path = UPLOAD_FOLDER / "carrier.mp4"
-        secret_path = UPLOAD_FOLDER / "secret.mp4"
-        carrier_file.save(carrier_path)
-        secret_file.save(secret_path)
+        merged_image = Steganography.merge(carrier_image, secret_image)
         
-        # Extract frames
-        carrier_frames, carrier_fps = extract_frames(carrier_path)
-        secret_frames, _ = extract_frames(secret_path)
+        img_io = io.BytesIO()
+        merged_image.save(img_io, 'PNG')
+        img_io.seek(0)
         
-        if not carrier_frames or not secret_frames:
-            return jsonify({'error': 'Failed to read video files'}), 400
-        
-        # Ensure secret video isn't longer than carrier
-        secret_frames = secret_frames[:len(carrier_frames)]
-        
-        # Encode frames
-        encoded_frames = []
-        for c_frame, s_frame in zip(carrier_frames, secret_frames):
-            encoded_frame = encode_frame(c_frame, s_frame)
-            encoded_frames.append(encoded_frame)
-        
-        # Save encoded video
-        output_path = UPLOAD_FOLDER / "encoded.mp4"
-        save_video(encoded_frames, carrier_fps, output_path)
-        
-        # Send encoded video
-        return send_file(output_path, mimetype='video/mp4', as_attachment=True,
-                        download_name='encoded_video.mp4')
-        
+        return send_file(img_io, mimetype='image/png', as_attachment=True, 
+                         download_name='hidden_image.png')
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/video-decode', methods=['POST'])
-def decode_video():
-    if 'video' not in request.files:
-        return jsonify({'error': 'No video file provided'}), 400
+@app.route('/extract-image', methods=['POST'])
+def extract_image():
+    if 'steganographic_image' not in request.files:
+        return jsonify({'error': 'Image with hidden data is required'}), 400
     
-    video_file = request.files['video']
-    
-    if not video_file or not allowed_file(video_file.filename):
-        return jsonify({'error': 'Invalid file format. Please use MP4 files.'}), 400
+    steganographic_image = Image.open(request.files['steganographic_image'])
     
     try:
-        # Save uploaded file temporarily
-        video_path = UPLOAD_FOLDER / "encoded.mp4"
-        video_file.save(video_path)
+        extracted_image = Steganography.unmerge(steganographic_image)
         
-        # Extract frames
-        encoded_frames, fps = extract_frames(video_path)
+        img_io = io.BytesIO()
+        extracted_image.save(img_io, 'PNG')
+        img_io.seek(0)
         
-        if not encoded_frames:
-            return jsonify({'error': 'Failed to read video file'}), 400
-        
-        # Decode frames
-        decoded_frames = []
-        for frame in encoded_frames:
-            decoded_frame = decode_frame(frame)
-            decoded_frames.append(decoded_frame)
-        
-        # Save decoded video
-        output_path = UPLOAD_FOLDER / "decoded.mp4"
-        save_video(decoded_frames, fps, output_path)
-        
-        # Send decoded video
-        return send_file(output_path, mimetype='video/mp4', as_attachment=True,
-                        download_name='decoded_video.mp4')
-        
+        return send_file(img_io, mimetype='image/png', as_attachment=True, 
+                         download_name='extracted_secret_image.png')
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
+
+# Routes
+@app.route('/')
+def index():
+    """Render the main page with steganography method selection"""
+    return render_template('index.html')
+
+@app.route('/imageSteganography')
+def image_steganography():
+    """Render the image steganography page"""
+    return render_template('imageSteganography.html')
+
+@app.route('/textSteganography')
+def text_steganography():
+    """Render the text steganography page"""
+    return render_template('textSteganography.html')
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):

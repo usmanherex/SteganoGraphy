@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
-    <title>SecureStego - Image Steganography</title>
+    <title>SecureStegno - Image Steganography</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.16/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.css">
@@ -16,7 +16,7 @@
                         <i class="fas fa-shield-alt text-white text-xl"></i>
                     </div>
                     <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 text-transparent bg-clip-text">
-                        SecureStego
+                        SecureStegno
                     </span>
                 </div>
                 <a href="/" class="text-slate-600 hover:text-blue-600 transition-colors duration-200 flex items-center space-x-2">
@@ -52,38 +52,102 @@
                     <select class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200" 
                             id="mode"
                             onchange="updateMode()">
-                        <option value="encode">Encode Data</option>
-                        <option value="decode">Decode Data</option>
+                            <option value="encode">Hide Text in Image</option>
+                            <option value="decode">Extract Hidden Text</option>
+                            <option value="hide-image">Hide One Image Inside Another</option>
+                            <option value="extract-image">Extract Hidden Image</option>
                     </select>
                 </div>
 
-                <!-- Image Upload -->
-                <div class="mb-8">
-                    <label class="block text-slate-900 font-semibold mb-2" for="image">
-                        Upload Image
-                    </label>
-                    <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
-                        <input class="hidden" 
-                               id="image" 
-                               type="file" 
-                               accept="image/*">
-                        <label for="image" class="cursor-pointer">
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-upload text-blue-600 text-xl"></i>
-                            </div>
-                            <p class="text-slate-600">Click or drag to upload an image</p>
+                <!-- Image Upload Sections -->
+                <div id="encode-decode-container">
+                    <!-- Existing Image Upload for Encode/Decode -->
+                    <div class="mb-8">
+                        <label class="block text-slate-900 font-semibold mb-2" for="image">
+                            Upload Image
                         </label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
+                            <input class="hidden" 
+                                   id="image" 
+                                   type="file" 
+                                   accept="image/*">
+                            <label for="image" class="cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-upload text-blue-600 text-xl"></i>
+                                </div>
+                                <p class="text-slate-600">Click or drag to upload an image</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Data Input -->
+                    <div class="mb-8" id="data-container">
+                        <label class="block text-slate-900 font-semibold mb-2" for="data">
+                            Message to Encode
+                        </label>
+                        <textarea class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[120px]" 
+                                  id="data" 
+                                  placeholder="Enter your secret message here..."></textarea>
                     </div>
                 </div>
 
-                <!-- Data Input -->
-                <div class="mb-8" id="data-container">
-                    <label class="block text-slate-900 font-semibold mb-2" for="data">
-                        Message to Encode
-                    </label>
-                    <textarea class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 min-h-[120px]" 
-                              id="data" 
-                              placeholder="Enter your secret message here..."></textarea>
+                <!-- Hide Image Section -->
+                <div id="hide-image-container" class="hidden">
+                    <div class="mb-8">
+                        <label class="block text-slate-900 font-semibold mb-2">
+                            Carrier Image
+                        </label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
+                            <input class="hidden" 
+                                   id="carrier_image" 
+                                   type="file" 
+                                   accept="image/*">
+                            <label for="carrier_image" class="cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-upload text-blue-600 text-xl"></i>
+                                </div>
+                                <p class="text-slate-600">Upload Carrier Image</p>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-8">
+                        <label class="block text-slate-900 font-semibold mb-2">
+                            Secret Image
+                        </label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
+                            <input class="hidden" 
+                                   id="secret_image" 
+                                   type="file" 
+                                   accept="image/*">
+                            <label for="secret_image" class="cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-upload text-blue-600 text-xl"></i>
+                                </div>
+                                <p class="text-slate-600">Upload Secret Image</p>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extract Image Section -->
+                <div id="extract-image-container" class="hidden">
+                    <div class="mb-8">
+                        <label class="block text-slate-900 font-semibold mb-2">
+                            Steganographic Image
+                        </label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors duration-200">
+                            <input class="hidden" 
+                                   id="steganographic_image" 
+                                   type="file" 
+                                   accept="image/*">
+                            <label for="steganographic_image" class="cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-upload text-blue-600 text-xl"></i>
+                                </div>
+                                <p class="text-slate-600">Upload Image with Hidden Content</p>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Submit Button -->
@@ -94,143 +158,168 @@
                     <i class="fas fa-arrow-right"></i>
                 </button>
             </div>
-
-          
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.js"></script>
     <script>
         function updateMode() {
-            const dataContainer = document.getElementById('data-container');
-            const buttonText = document.getElementById('buttonText');
             const mode = document.getElementById('mode').value;
+            const encodeDecodeContainer = document.getElementById('encode-decode-container');
+            const dataContainer = document.getElementById('data-container');
+            const hideImageContainer = document.getElementById('hide-image-container');
+            const extractImageContainer = document.getElementById('extract-image-container');
+            const buttonText = document.getElementById('buttonText');
             
-            dataContainer.style.display = mode === 'encode' ? 'block' : 'none';
-            buttonText.textContent = mode === 'encode' ? 'Encode Data' : 'Decode Data';
+            // Hide all containers first
+            encodeDecodeContainer.style.display = 'none';
+            dataContainer.style.display = 'none';
+            hideImageContainer.style.display = 'none';
+            extractImageContainer.style.display = 'none';
+
+            // Show relevant containers based on mode
+            switch(mode) {
+                case 'encode':
+                    encodeDecodeContainer.style.display = 'block';
+                    dataContainer.style.display = 'block';
+                    buttonText.textContent = 'Encode Data';
+                    break;
+                case 'decode':
+                    encodeDecodeContainer.style.display = 'block';
+                    buttonText.textContent = 'Decode Data';
+                    break;
+                case 'hide-image':
+                    hideImageContainer.style.display = 'block';
+                    buttonText.textContent = 'Hide Image';
+                    break;
+                case 'extract-image':
+                    extractImageContainer.style.display = 'block';
+                    buttonText.textContent = 'Extract Image';
+                    break;
+            }
         }
 
         // File input preview and validation
-        document.getElementById('image').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const label = this.nextElementSibling;
-                label.querySelector('p').textContent = file.name;
-            }
+        ['image', 'carrier_image', 'secret_image', 'steganographic_image'].forEach(id => {
+            document.getElementById(id).addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const label = this.nextElementSibling;
+                    label.querySelector('p').textContent = file.name;
+                }
+            });
         });
 
         document.getElementById('submit').addEventListener('click', async function() {
             const mode = document.getElementById('mode').value;
-            const image = document.getElementById('image').files[0];
+            let formData = new FormData();
             
-            if (!image) {
+            try {
+                switch(mode) {
+                    case 'encode':
+                        const encodeImage = document.getElementById('image').files[0];
+                        const data = document.getElementById('data').value;
+                        
+                        if (!encodeImage || !data) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Incomplete Information',
+                                text: 'Please select an image and enter a message.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                            return;
+                        }
+                        
+                        formData.append('image', encodeImage);
+                        formData.append('data', data);
+                        
+                        await performRequest('/encode', formData, 'Encoding Data', 'Encoded Image');
+                        break;
+                    
+                    case 'decode':
+                        const decodeImage = document.getElementById('image').files[0];
+                        
+                        if (!decodeImage) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Image Required',
+                                text: 'Please select an image to decode.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                            return;
+                        }
+                        
+                        formData.append('image', decodeImage);
+                        
+                        await performRequest('/decode', formData, 'Decoding Data', 'Decoded Message', true);
+                        break;
+                    
+                    case 'hide-image':
+                        const carrierImage = document.getElementById('carrier_image').files[0];
+                        const secretImage = document.getElementById('secret_image').files[0];
+                        
+                        if (!carrierImage || !secretImage) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Incomplete Images',
+                                text: 'Please select both carrier and secret images.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                            return;
+                        }
+                        
+                        formData.append('carrier_image', carrierImage);
+                        formData.append('secret_image', secretImage);
+                        
+                        await performRequest('/hide-image', formData, 'Hiding Image', 'Image with Hidden Content');
+                        break;
+                    
+                    case 'extract-image':
+                        const steganographicImage = document.getElementById('steganographic_image').files[0];
+                        
+                        if (!steganographicImage) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Image Required',
+                                text: 'Please select an image to extract from.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                            return;
+                        }
+                        
+                        formData.append('steganographic_image', steganographicImage);
+                        
+                        await performRequest('/extract-image', formData, 'Extracting Image', 'Extracted Secret Image');
+                        break;
+                }
+            } catch (error) {
                 await Swal.fire({
                     icon: 'error',
-                    title: 'Image Required',
-                    text: 'Please select an image file to continue.',
-                    confirmButtonColor: '#2563eb',
-                    background: '#ffffff',
-                    customClass: {
-                        popup: 'rounded-2xl'
-                    }
+                    title: 'Operation Failed',
+                    text: 'Unable to complete the operation. Please try again.',
+                    confirmButtonColor: '#2563eb'
                 });
-                return;
             }
+        });
 
-            let formData = new FormData();
-            formData.append('image', image);
-
-            if (mode === 'encode') {
-                const data = document.getElementById('data').value;
-                if (!data) {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Message Required',
-                        text: 'Please enter a message to encode.',
-                        confirmButtonColor: '#2563eb',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
-                    });
-                    return;
+        async function performRequest(url, formData, loadingTitle, successTitle, isDecoding = false) {
+            Swal.fire({
+                title: loadingTitle,
+                html: 'Processing your request...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-                formData.append('data', data);
+            });
 
-                Swal.fire({
-                    title: 'Encoding Data',
-                    html: 'Processing your request...',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    },
-                    background: '#ffffff',
-                    customClass: {
-                        popup: 'rounded-2xl'
-                    }
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
                 });
 
-                try {
-                    const response = await fetch('/encode', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Your data has been encoded successfully.',
-                        confirmButtonColor: '#2563eb',
-                        confirmButtonText: 'Download Image',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
-                    });
-
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = image.name.split('.')[0] + '_encoded.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } catch (error) {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Encoding Failed',
-                        text: 'Unable to encode your data. Please try again.',
-                        confirmButtonColor: '#2563eb',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
-                    });
-                }
-            } else {
-                Swal.fire({
-                    title: 'Decoding Data',
-                    html: 'Processing your request...',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    },
-                    background: '#ffffff',
-                    customClass: {
-                        popup: 'rounded-2xl'
-                    }
-                });
-
-                try {
-                    const response = await fetch('/decode', {
-                        method: 'POST',
-                        body: formData
-                    });
+                if (isDecoding) {
                     const data = await response.json();
-                    
                     await Swal.fire({
                         icon: 'success',
                         title: 'Hidden Message',
@@ -238,26 +327,36 @@
                                 <p class="text-sm text-slate-600 mb-2">Decoded content:</p>
                                 <p class="text-slate-900 break-words">${data.hidden_data}</p>
                               </div>`,
-                        confirmButtonColor: '#2563eb',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
+                        confirmButtonColor: '#2563eb'
                     });
-                } catch (error) {
+                } else {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
                     await Swal.fire({
-                        icon: 'error',
-                        title: 'Decoding Failed',
-                        text: 'Unable to decode the data. Please ensure the image contains hidden data.',
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `Your ${successTitle} is ready to download.`,
                         confirmButtonColor: '#2563eb',
-                        background: '#ffffff',
-                        customClass: {
-                            popup: 'rounded-2xl'
-                        }
+                        confirmButtonText: 'Download',
                     });
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${successTitle.toLowerCase().replace(/\s+/g, '_')}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                 }
+            } catch (error) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Operation Failed',
+                    text: 'Unable to complete the operation. Please try again.',
+                    confirmButtonColor: '#2563eb'
+                });
             }
-        });
+        }
 
         // Initialize the page with encode mode
         updateMode();
